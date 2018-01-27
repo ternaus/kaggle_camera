@@ -13,6 +13,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam, SGD
 from torchvision import transforms
 from pathlib import Path
+import augmentations
 
 
 def validation(model, criterion, valid_loader):
@@ -61,6 +62,11 @@ if __name__ == '__main__':
 
     train_transform = transforms.Compose([
         transforms.RandomCrop(512),
+        augmentations.GammaCorrection(),
+        augmentations.JpegCompression(),
+        augmentations.D4(),
+        # augmentations.GaussianBlur(),
+        # augmentations.ContrastNormalization(),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
@@ -76,8 +82,8 @@ if __name__ == '__main__':
 
     num_classes = data_loader.num_classes
 
-    model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet50)
-    # model = models.DenseNetFinetune(models.densenet121)
+    # model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet50)
+    model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet121)
     model = utils.cuda(model)
 
     if utils.cuda_is_available:

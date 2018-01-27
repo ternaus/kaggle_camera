@@ -34,8 +34,15 @@ img_transform = Compose([
 ])
 
 
-def load_image(path: Path) -> np.array:
+def load_image(path: Path, k_angle=None, to_flip=False) -> np.array:
     img = cv2.imread(str(path))
+
+    if k_angle is not None:
+        img = np.rot90(img, k_angle)
+
+    if to_flip:
+        img = np.fliplr(img)
+
     return Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
 
