@@ -92,6 +92,11 @@ def to_keep(path):
     img = Image.open(path)
     h, w = img.size
 
+    try:
+        img._getexif()
+    except:
+        return False
+
     return h >= 512 and w >= 512
 
 
