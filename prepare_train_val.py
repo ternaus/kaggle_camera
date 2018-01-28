@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image
 from tqdm import tqdm
-import piexif
+import cv2
 
 data_path = Path('data')
 
@@ -70,10 +70,6 @@ def to_keep(path):
     :param path:
     :return: True if heigh and width >= 512
     """
-    try:
-        piexif.remove(str(path))
-    except:
-        pass
 
     img = Image.open(path)
 

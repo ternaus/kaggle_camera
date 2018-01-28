@@ -55,7 +55,11 @@ def validation(model, criterion, valid_loader):
 def get_df(mode=None):
     if mode == 'train':
         main_df = pd.read_csv(str(data_path / 'train_df.csv'))
+        main_df['is_manip'] = 0
+
         flickr_df = pd.read_csv(str(data_path / 'flickr_train.csv'))
+        flickr_df['is_manip'] = 1
+
         df = pd.concat([main_df, flickr_df])
         df['class_id'] = df['target'].map(class_map)
         return df
@@ -66,6 +70,8 @@ def get_df(mode=None):
         pseudo_df = pd.read_csv(str(data_path / 'test_preds_trunc.csv'))
         df = pd.concat([main_df, flickr_df, pseudo_df])
         df['class_id'] = df['target'].map(class_map)
+
+        df['is_manip'] = 0
 
         return df
 
