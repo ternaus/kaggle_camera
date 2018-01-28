@@ -60,14 +60,17 @@ def get_df(mode=None):
         flickr_df = pd.read_csv(str(data_path / 'flickr_train.csv'))
         flickr_df['is_manip'] = 1
 
-        df = pd.concat([main_df, flickr_df])
+        pseudo_df = pd.read_csv(str(data_path / 'val_preds_trunc.csv'))
+        pseudo_df['is_manip'] = pseudo_df['fname'].str.contains('manip').astype(int)
+
+        df = pd.concat([main_df, flickr_df, pseudo_df])
         df['class_id'] = df['target'].map(class_map)
         return df
 
     elif mode == 'val':
         main_df = pd.read_csv(str(data_path / 'val_df.csv'))
         flickr_df = pd.read_csv(str(data_path / 'flickr_val.csv'))
-        pseudo_df = pd.read_csv(str(data_path / 'test_preds_trunc.csv'))
+        pseudo_df = pd.read_csv(str(data_path / 'val_preds_trunc.csv'))
         df = pd.concat([main_df, flickr_df, pseudo_df])
         df['class_id'] = df['target'].map(class_map)
 

@@ -15,22 +15,26 @@ data_path = Path('data')
 
 test_preds = pd.read_csv(str(data_path / 'Votings_stats.csv'))
 
-test_preds.head()
-
-temp = []
+temp_val = []
+temp_train = []
 
 for a, df in test_preds[['fname', 'is_manip', 'best_model', 'votes']].groupby(['best_model', 'is_manip']):
-    temp += [df.sort_values('votes', ascending=False).head(25)]
+    dft = df[df['votes'] >= 6].sort_values(by='votes', ascending=False)
 
-test_preds_trunc = pd.concat(temp)
+    temp_val += [dft.iloc[:25]]
+    temp_train += [dft.iloc[25:]]
 
-test_preds_trunc.head()
+val_preds_trunc = pd.concat(temp_val)
+train_preds_trunc = pd.concat(temp_train)
 
-test_preds_trunc['file_name'] = test_preds_trunc['fname'].apply(lambda x: (data_path / 'test' / x).absolute(), 1)
+val_preds_trunc['file_name'] = val_preds_trunc['fname'].apply(lambda x: (data_path / 'test' / x).absolute(), 1)
+train_preds_trunc['file_name'] = train_preds_trunc['fname'].apply(lambda x: (data_path / 'test' / x).absolute(), 1)
 
-test_preds_trunc = test_preds_trunc.rename(columns={'best_model': 'target'})
+val_preds_trunc = val_preds_trunc.rename(columns={'best_model': 'target'})
+train_preds_trunc = train_preds_trunc.rename(columns={'best_model': 'target'})
 
-test_preds_trunc.to_csv(str(data_path / 'test_preds_trunc.csv'), index=False)
+val_preds_trunc.to_csv(str(data_path / 'val_preds_trunc.csv'), index=False)
+train_preds_trunc.to_csv(str(data_path / 'train_preds_trunc.csv'), index=False)
 
 train_path = data_path / 'train'
 
