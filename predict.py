@@ -12,13 +12,14 @@ from pathlib import Path
 import torch.nn.functional as F
 import pandas as pd
 from scipy.stats.mstats import gmean
+import train
+import data_loader
 
-
-img_transform = transforms.Compose([
-    transforms.RandomCrop(512),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
+# img_transform = transforms.Compose([
+#     # transforms.RandomCrop(512),
+#     transforms.ToTensor(),
+#     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+# ])
 
 
 class PredictionDataset:
@@ -32,8 +33,14 @@ class PredictionDataset:
 
     def __getitem__(self, idx):
         path = self.paths[idx]
-        image = utils.load_image(path, k_angle=self.k_angle, to_flip=self.to_flip)
-        return utils.img_transform(image), path.stem
+        image = utils.load_image(path)
+
+        if self.k_angle:
+            image = np.rot90(image, self.k_angle)
+        if self.to_flip:
+            image = np.fliplr(image)
+
+        return data_loader.img_transform(image.copy()), path.stem
 
 
 def predict(model, from_paths, batch_size: int, k_angle: int, to_flip: bool):
@@ -42,20 +49,20 @@ def predict(model, from_paths, batch_size: int, k_angle: int, to_flip: bool):
         shuffle=False,
         batch_size=batch_size,
         num_workers=args.workers,
-        pin_memory=True
+        pin_memory=torch.cuda.is_available()
     )
 
     result = []
 
     for batch_num, (inputs, stems) in enumerate(tqdm(loader, desc='Predict')):
         inputs = utils.variable(inputs, volatile=True)
-        outputs = F.softmax(model(inputs))
+        outputs = F.softmax(model(inputs), dim=1)
         result += [outputs.data.cpu().numpy()]
 
     return np.vstack(result)
 
 
-def get_model(fold):
+def get_model():
     num_classes = data_loader.num_classes
 
     model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet121)
@@ -67,7 +74,7 @@ def get_model(fold):
 
     state = torch.load(
         # str(Path(args.root) / 'best-model_{fold}.pt'.format(fold=fold)))
-    str(Path(args.root) / 'model_{fold}.pt'.format(fold=fold)))
+        str(Path(args.root) / 'best-model.pt'))
 
     model.load_state_dict(state['model'])
     model.eval()
@@ -77,9 +84,8 @@ def get_model(fold):
 
 def add_args(parser):
     arg = parser.add_argument
-    arg('--root', default='data/models/densenet121_100', help='model path')
+    arg('--root', default='data/models/densenet_32_50', help='model path')
     arg('--batch-size', type=int, default=20)
-    arg('--lr', type=float, default=0.0001)
     arg('--workers', type=int, default=12)
 
 
@@ -94,32 +100,33 @@ if __name__ == '__main__':
 
     data_path = Path('data')
 
-    num_folds = 5
     test_images = sorted(list((data_path / 'test').glob('*.tif')))
 
     result = []
 
-    for fold in range(num_folds):
-        model = get_model(fold)
-        for k_angle in [0, 1, 2, 3]:
-            for to_flip in [False]:
-                preds = predict(model, test_images, args.batch_size, k_angle, to_flip)
+    model = get_model()
+    for k_angle in [0, 1, 2, 3]:
+        for to_flip in [False]:
+            preds = predict(model, test_images, args.batch_size, k_angle, to_flip)
 
-                result += [preds]
+            result += [preds]
 
     pred_probs = gmean(np.dstack(result), axis=2)
 
     # max_ind = np.argmax(pred_probs, axis=1)
 
-    train_df = pd.read_csv(str(data_path / 'train_crops_df.csv'))
-    class_map = dict(zip(train_df['class_ind'].values, train_df['class'].values))
+    # train_df = pd.read_csv(str(data_path / 'train_crops_df.csv'))
+    # class_map = dict(zip(train_df['class_ind'].values, train_df['class'].values))
+
+    class_name, class_id = zip(*train.class_map.items())
+
+    class_map_inv = dict(zip(class_id, class_name))
 
     # preds = [class_map[x] for x in max_ind]
-    columns = [class_map[x] for x in range(10)]
+    columns = [class_map_inv[x] for x in range(10)]
 
     df = pd.DataFrame(pred_probs, columns=columns)
     df['fname'] = [x.name for x in test_images]
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
-    df.to_csv(str(data_path / '14.csv'), index=False)
-
+    df.to_csv(str(data_path / '15.csv'), index=False)
