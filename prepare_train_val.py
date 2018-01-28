@@ -7,7 +7,8 @@
 
 from pathlib import Path
 import pandas as pd
-
+from PIL import Image
+from tqdm import tqdm
 
 data_path = Path('data')
 
@@ -82,7 +83,29 @@ flickr_path = data_path / 'flickr_images'
 flickr_file_names = list(flickr_path.glob('**/*.*'))
 
 
-flickr_file_names = [x.absolute() for x in flickr_file_names]
+def to_keep(path):
+    """
+
+    :param path:
+    :return: True if heigh and width >= 512
+    """
+    img = Image.open(path)
+    h, w = img.size
+
+    return h >= 512 and w >= 512
+
+
+flickr_file_names = [x.absolute() for x in tqdm(flickr_file_names) if to_keep(x)]
+
+
+df_flickr = pd.DataFrame({'file_name': flickr_file_names})
+
+
+df_flickr['target'] = df_flickr['file_name'].apply(lambda x: x.parent.name, 1)
+
+
+df_flickr['fname'] = df_flickr['file_name'].apply(lambda x: x.name, 1)
+
 
 
 good_files = pd.read_csv(str(data_path / 'good_jpgs'), header=None)
@@ -111,15 +134,6 @@ map_phone = {'iphone_6': 'iPhone-6',
 
 
 good_files['target'] = good_files['target'].apply(lambda x: map_phone[x], 1)
-
-
-df_flickr = pd.DataFrame({'file_name': flickr_file_names})
-
-
-df_flickr['target'] = df_flickr['file_name'].apply(lambda x: x.parent.name, 1)
-
-
-df_flickr['fname'] = df_flickr['file_name'].apply(lambda x: x.name, 1)
 
 
 Moto_X = df_flickr[df_flickr['target'] == 'Motorola-X']
