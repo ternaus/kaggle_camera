@@ -11,6 +11,21 @@ from PIL import Image
 from tqdm import tqdm
 import cv2
 
+
+def to_keep(path):
+    """
+
+    :param path:
+    :return: True if heigh and width >= 512
+    """
+
+    img = Image.open(path)
+
+    h, w = img.size
+
+    return h >= 512 and w >= 512
+
+
 data_path = Path('data')
 
 test_preds = pd.read_csv(str(data_path / 'Votings_stats.csv'))
@@ -18,7 +33,12 @@ test_preds = pd.read_csv(str(data_path / 'Votings_stats.csv'))
 temp_val = []
 temp_train = []
 
-for a, df in test_preds[['fname', 'is_manip', 'best_model', 'votes']].groupby(['best_model', 'is_manip']):
+test_preds['file_name'] = test_preds['fname'].apply(lambda x: (data_path / 'test' / x).absolute(), 1)
+
+to_keep_ind = [to_keep(x) for x in tqdm(test_preds['file_name'].values)]
+print('we keep {to_keep} out of {total_shape}'.format(to_keep=sum(to_keep_ind), total_shape=test_preds.shape[0]))
+
+for a, df in test_preds[['fname', 'is_manip', 'best_model', 'votes', 'file_name']].groupby(['best_model', 'is_manip']):
     dft = df[df['votes'] >= 6].sort_values(by='votes', ascending=False)
 
     temp_val += [dft.iloc[:25]]
@@ -27,7 +47,6 @@ for a, df in test_preds[['fname', 'is_manip', 'best_model', 'votes']].groupby(['
 val_preds_trunc = pd.concat(temp_val)
 train_preds_trunc = pd.concat(temp_train)
 
-val_preds_trunc['file_name'] = val_preds_trunc['fname'].apply(lambda x: (data_path / 'test' / x).absolute(), 1)
 train_preds_trunc['file_name'] = train_preds_trunc['fname'].apply(lambda x: (data_path / 'test' / x).absolute(), 1)
 
 val_preds_trunc = val_preds_trunc.rename(columns={'best_model': 'target'})
@@ -63,32 +82,12 @@ df_train_val.to_csv(str(data_path / 'val_df.csv'), index=False)
 
 df_train_train.to_csv(str(data_path / 'train_df.csv'), index=False)
 
-flickr_path = data_path / 'flickr_images'
+flickr_path = data_path / 'flickr_files'
 
-flickr_file_names = list(flickr_path.glob('**/*.*'))
-
-
-def to_keep(path):
-    """
-
-    :param path:
-    :return: True if heigh and width >= 512
-    """
-
-    img = Image.open(path)
-
-    h, w = img.size
-
-    return h >= 512 and w >= 512
-
-
-flickr_file_names = [x.absolute() for x in tqdm(flickr_file_names) if to_keep(x)]
-
-df_flickr = pd.DataFrame({'file_name': flickr_file_names})
-
-df_flickr['target'] = df_flickr['file_name'].apply(lambda x: x.parent.name, 1)
-
-df_flickr['fname'] = df_flickr['file_name'].apply(lambda x: x.name, 1)
+df_flickr = pd.read_csv(str(data_path / 'external_data.csv'))
+df_flickr['fname'] = df_flickr['fname'].apply(lambda x: x.split('/')[-1], 1)
+df_flickr = df_flickr.rename(columns={'camera': 'target'})
+df_flickr['file_name'] = df_flickr.apply(lambda x: (data_path / 'flickr_images' / x['target'] / x['fname']).absolute(), 1)
 
 good_files = pd.read_csv(str(data_path / 'good_jpgs'), header=None)
 
@@ -99,7 +98,6 @@ good_files['fname'] = good_files[0].apply(lambda x: x.split('/')[-1], 1)
 good_files['file_name'] = good_files.apply(lambda x: (flickr_path / x['target'] / x['fname']).absolute(), 1)
 
 # There is no Motorola X!
-
 
 map_phone = {'iphone_6': 'iPhone-6',
              'nexus_6': 'Motorola-Nexus-6',

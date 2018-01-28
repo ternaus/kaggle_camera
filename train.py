@@ -65,6 +65,8 @@ def get_df(mode=None):
 
         df = pd.concat([main_df, flickr_df, pseudo_df])
         df['class_id'] = df['target'].map(class_map)
+
+        df = df[df['target'].notnull()]
         return df
 
     elif mode == 'val':
@@ -75,7 +77,7 @@ def get_df(mode=None):
         df['class_id'] = df['target'].map(class_map)
 
         df['is_manip'] = 0
-
+        df = df[df['target'].notnull()]
         return df
 
     return None
