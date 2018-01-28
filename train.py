@@ -10,10 +10,28 @@ import numpy as np
 import utils
 from torch import nn
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam, SGD
+from torch.optim import SGD
 from torchvision import transforms
 from pathlib import Path
-import augmentations
+
+import pandas as pd
+
+data_path = Path('data')
+
+img_transform = transforms.Compose([
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+class_map = {'HTC-1-M7': 0,
+             'LG-Nexus-5x': 1,
+             'Motorola-Droid-Maxx': 2,
+             'Motorola-Nexus-6': 3,
+             'Motorola-X': 4,
+             'Samsung-Galaxy-Note3': 5,
+             'Samsung-Galaxy-S4': 6,
+             'Sony-NEX-7': 7,
+             'iPhone-4s': 8,
+             'iPhone-6': 9}
 
 
 def validation(model, criterion, valid_loader):
@@ -34,11 +52,30 @@ def validation(model, criterion, valid_loader):
     return {'valid_loss': valid_loss, 'accuracy': valid_accuracy}
 
 
+def get_df(mode=None):
+    if mode == 'train':
+        main_df = pd.read_csv(str(data_path / 'train_df.csv'))
+        flickr_df = pd.read_csv(str(data_path / 'flickr_train.csv'))
+        df = pd.concat([main_df, flickr_df])
+        df['class_id'] = df['target'].map(class_map)
+        return df
+
+    elif mode == 'val':
+        main_df = pd.read_csv(str(data_path / 'val_df.csv'))
+        flickr_df = pd.read_csv(str(data_path / 'flickr_val.csv'))
+        pseudo_df = pd.read_csv(str(data_path / 'test_preds_trunc.csv'))
+        df = pd.concat([main_df, flickr_df, pseudo_df])
+        df['class_id'] = df['target'].map(class_map)
+
+        return df
+
+    return None
+
+
 def add_args(parser):
     arg = parser.add_argument
     arg('--root', default='runs/debug', help='checkpoint root')
     arg('--batch-size', type=int, default=4)
-    arg('--fold', type=int)
     arg('--n-epochs', type=int, default=30)
     arg('--lr', type=float, default=0.0001)
     arg('--workers', type=int, default=12)
@@ -47,6 +84,7 @@ def add_args(parser):
 
 
 if __name__ == '__main__':
+
     random_state = 2016
 
     parser = argparse.ArgumentParser()
@@ -60,25 +98,10 @@ if __name__ == '__main__':
 
     batch_size = args.batch_size
 
-    train_transform = transforms.Compose([
-        transforms.RandomCrop(512),
-        augmentations.GammaCorrection(),
-        augmentations.JpegCompression(),
-        augmentations.D4(),
-        # augmentations.GaussianBlur(),
-        # augmentations.ContrastNormalization(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
+    train_df = get_df('train')
+    val_df = get_df('val')
 
-    val_transform = transforms.Compose([
-        transforms.CenterCrop(512),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-
-    train_loader, valid_loader = data_loader.get_loaders(batch_size, args, train_transform=train_transform,
-                                                         valid_transform=val_transform)
+    train_loader, valid_loader = data_loader.get_loaders(batch_size, args, train_df=train_df, valid_df=val_df)
 
     num_classes = data_loader.num_classes
 

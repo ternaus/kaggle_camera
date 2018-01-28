@@ -11,7 +11,7 @@ import tqdm
 from PIL import Image
 from torch import nn
 from torch.autograd import Variable
-from torchvision.transforms import ToTensor, Normalize, Compose
+
 
 DATA_ROOT = Path(__file__).absolute() / 'data'
 
@@ -28,22 +28,9 @@ def cuda(x):
     return x.cuda() if cuda_is_available else x
 
 
-img_transform = Compose([
-    ToTensor(),
-    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
-
-
-def load_image(path: Path, k_angle=None, to_flip=False) -> np.array:
+def load_image(path: Path) -> np.array:
     img = cv2.imread(str(path))
-
-    if k_angle is not None:
-        img = np.rot90(img, k_angle)
-
-    if to_flip:
-        img = np.fliplr(img)
-
-    return Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 
 def write_event(log, step: int, **data):
@@ -68,8 +55,8 @@ def train(args,
     optimizer = init_optimizer(lr)
 
     root = Path(args.root)
-    model_path = root / 'model_{fold}.pt'.format(fold=args.fold)
-    best_model_path = root / 'best-model_{fold}.pt'.format(fold=args.fold)
+    model_path = root / 'model.pt'
+    best_model_path = root / 'best-model.pt'
     if model_path.exists():
         state = torch.load(str(model_path))
         epoch = state['epoch']
@@ -91,7 +78,7 @@ def train(args,
 
     report_each = 10
     save_prediction_each = report_each * 20
-    log = root.joinpath('train_{fold}.log'.format(fold=args.fold)).open('at', encoding='utf8')
+    log = root.joinpath('train.log').open('at', encoding='utf8')
     valid_losses = []
     lr_reset_epoch = epoch
     for epoch in range(epoch, n_epochs + 1):
