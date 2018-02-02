@@ -97,7 +97,7 @@ flickr_df['id'] = flickr_df['target'] + '_' + flickr_df['fname']
 flickr_df['target'].value_counts()
 
 
-flickr_df.to_csv('../data/flickr_df.csv', index=False)
+flickr_df.to_csv(str(data_path / 'flickr_df.csv'), index=False)
 
 
 val_path = data_path / 'new_val'
@@ -155,8 +155,8 @@ val_df_new = pd.concat([pd.concat(add_to_val), val_df]).reset_index(drop=True)
 val_df_new['target'].value_counts()
 
 
-flickr_df_new.to_csv('../data/flickr_df.csv', index=False)
+flickr_df_new.to_csv(str(data_path / 'flickr_df.csv'), index=False)
 
 
-val_df_new.to_csv('../data/val_df.csv', index=False)
+val_df_new.to_csv(str(data_path / 'val_df.csv'), index=False)
 
