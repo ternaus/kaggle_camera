@@ -31,22 +31,10 @@ for fold in range(5):
 
 df['fold'] = df['fold'].astype(int)
 
-
-# In[351]:
-
-
-df.to_csv('../data/train_df.csv', index=False)
-
-
-# # Good data, but not from low quality
-
-# In[352]:
+df.to_csv(str(data_path / 'train_df.csv'), index=False)
 
 
 flickr_path = data_path / 'new_flickr'
-
-
-# In[353]:
 
 
 flickr_file_names = list(flickr_path.glob('**/*.*'))
