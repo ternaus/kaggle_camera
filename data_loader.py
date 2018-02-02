@@ -6,6 +6,7 @@ from functools import partial
 from PIL import Image
 from io import BytesIO
 import cv2
+import transforms as albu_trans
 
 num_classes = 10
 
@@ -80,6 +81,9 @@ class CSVDataset(data.Dataset):
             print(self.path[idx])
 
         if self.mode == 'train':
+
+            self.X = albu_trans.RandomCrop(1024)
+
             # self.X = augment(X, safe=False)
             if self.is_manip[idx] == 1:
                 self.X = augment(X, safe=True)
