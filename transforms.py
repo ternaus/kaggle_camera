@@ -278,6 +278,37 @@ class CenterCrop:
             return img
 
 
+class RandomCrop:
+    def __init__(self, height, width=None):
+        self.height = height
+        if not width:
+            self.width = height
+        else:
+            self.width = width
+
+    def __call__(self, img, mask=None):
+        h, w, c = img.shape
+
+        start_height = np.random.randint(0, h - self.height - 1)
+        start_width = np.random.randint(0, w - self.width - 1)
+
+        dy = (h - self.height) // 2
+        dx = (w - self.width) // 2
+
+        y1 = start_height
+        y2 = y1 + self.height
+        x1 = start_width
+        x2 = x1 + self.width
+
+        img = img[y1:y2, x1:x2, :]
+        if mask is not None:
+            mask = mask[y1:y2, x1:x2, :]
+
+            return img, mask
+        else:
+            return img
+
+
 class Distort1:
     """"
     ## unconverntional augmnet ################################################################################3

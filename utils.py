@@ -11,6 +11,7 @@ import tqdm
 from PIL import Image
 from torch import nn
 from torch.autograd import Variable
+import jpeg4py
 
 
 DATA_ROOT = Path(__file__).absolute() / 'data'
@@ -29,8 +30,36 @@ def cuda(x):
 
 
 def load_image(path: Path) -> np.array:
-    img = cv2.imread(str(path))
-    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    # try:
+    img = jpeg4py.JPEG(str(path)).decode()
+    # except:
+    # img = cv2.imread(str(path))
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # print(path)
+
+    # img = cv2.imread(str(path))
+    # if img.shape[0] == 512 and img.shape[1] == 512:
+    #     return img
+
+    # height, width = 1024, 1024
+    #
+    # h, w, c = img.shape
+    # dy = (h - height) // 2
+    # dx = (w - width) // 2
+    #
+    # y1 = dy
+    # y2 = y1 + height
+    # x1 = dx
+    # x2 = x1 + width
+    #
+    # img = img[y1:y2, x1:x2, :]
+
+    # if img.shape != (1024, 1024, 3):
+    #      print(path)
+
+    # img = np.array(Image.open(str(path)))
+    return img
 
 
 def write_event(log, step: int, **data):

@@ -35,7 +35,7 @@ class PredictionDataset:
         path = self.paths[idx]
         image = utils.load_image(path)
 
-        if self.k_angle:
+        if self.k_angle > 0:
             image = np.rot90(image, self.k_angle)
         if self.to_flip:
             image = np.fliplr(image)
@@ -65,8 +65,8 @@ def predict(model, from_paths, batch_size: int, k_angle: int, to_flip: bool):
 def get_model():
     num_classes = data_loader.num_classes
 
-    model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet121)
-    # model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet50)
+    # model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet121)
+    model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet34, dropout=True)
     model = utils.cuda(model)
 
     if utils.cuda_is_available:
@@ -74,7 +74,7 @@ def get_model():
 
     state = torch.load(
         # str(Path(args.root) / 'best-model_{fold}.pt'.format(fold=fold)))
-        str(Path(args.root) / 'best-model.pt'))
+        str(Path(args.root) / 'model.pt'))
 
     model.load_state_dict(state['model'])
     model.eval()
@@ -84,7 +84,7 @@ def get_model():
 
 def add_args(parser):
     arg = parser.add_argument
-    arg('--root', default='data/models/densenet_32_50', help='model path')
+    arg('--root', default='data/models/resnet34_147', help='model path')
     arg('--batch-size', type=int, default=20)
     arg('--workers', type=int, default=12)
 
@@ -115,18 +115,15 @@ if __name__ == '__main__':
 
     # max_ind = np.argmax(pred_probs, axis=1)
 
-    # train_df = pd.read_csv(str(data_path / 'train_crops_df.csv'))
-    # class_map = dict(zip(train_df['class_ind'].values, train_df['class'].values))
-
     class_name, class_id = zip(*train.class_map.items())
 
     class_map_inv = dict(zip(class_id, class_name))
 
-    # preds = [class_map[x] for x in max_ind]
+    # preds = [class_map_inv[x] for x in max_ind]
     columns = [class_map_inv[x] for x in range(10)]
 
     df = pd.DataFrame(pred_probs, columns=columns)
     df['fname'] = [x.name for x in test_images]
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
-    df.to_csv(str(data_path / '15.csv'), index=False)
+    df.to_csv(str(data_path / '18.csv'), index=False)

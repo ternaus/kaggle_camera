@@ -11,16 +11,14 @@ import utils
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from torchvision import transforms
 from pathlib import Path
+import transforms as albu_trans
+from torchvision.transforms import ToTensor, Normalize, Compose
+
 
 import pandas as pd
 
 data_path = Path('data')
-
-img_transform = transforms.Compose([
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
 
 class_map = {'HTC-1-M7': 0,
              'LG-Nexus-5x': 1,
@@ -54,16 +52,29 @@ def validation(model, criterion, valid_loader):
 
 def get_df(mode=None):
     if mode == 'train':
-        main_df = pd.read_csv(str(data_path / 'train_df.csv'))
+        train_path = data_path / 'train'
+        train_file_names = list(train_path.glob('**/*.*'))
+        train_file_names = [x.absolute() for x in train_file_names]
+        main_df = pd.DataFrame({'file_name': train_file_names})
+        main_df['fname'] = main_df['file_name'].apply(lambda x: x.name, 1)
+
+        main_df = main_df[main_df['fname'] != '(MotoNex6)8.jpg']
+
+        main_df['target'] = main_df['file_name'].apply(lambda x: x.parent.name, 1)
         main_df['is_manip'] = 0
 
-        flickr_df = pd.read_csv(str(data_path / 'flickr_train.csv'))
-        flickr_df['is_manip'] = 1
+        flickr_df = pd.read_csv(str(data_path / 'flickr_df.csv'))
+        flickr_df['is_manip'] = 0
 
-        pseudo_df = pd.read_csv(str(data_path / 'val_preds_trunc.csv'))
-        pseudo_df['is_manip'] = pseudo_df['fname'].str.contains('manip').astype(int)
+        test_preds = pd.read_csv(str(data_path / 'Votings_stats.csv'))
 
-        df = pd.concat([main_df, flickr_df, pseudo_df])
+        test_preds['file_name'] = test_preds['fname'].apply(lambda x: (data_path / 'test' / x.replace('tif', 'jpg')).absolute(), 1)
+        test_preds = test_preds.rename(columns={'best_model': 'target'})
+        test_preds = test_preds[test_preds['votes'] >= 6]
+        test_preds['is_manip'] = test_preds['fname'].astype(str).str.contains('manip').astype(int)
+
+        df = pd.concat([main_df, flickr_df, test_preds])
+
         df['class_id'] = df['target'].map(class_map)
 
         df = df[df['target'].notnull()]
@@ -71,9 +82,8 @@ def get_df(mode=None):
 
     elif mode == 'val':
         main_df = pd.read_csv(str(data_path / 'val_df.csv'))
-        flickr_df = pd.read_csv(str(data_path / 'flickr_val.csv'))
-        pseudo_df = pd.read_csv(str(data_path / 'val_preds_trunc.csv'))
-        df = pd.concat([main_df, flickr_df, pseudo_df])
+        df = main_df
+
         df['class_id'] = df['target'].map(class_map)
 
         df['is_manip'] = 0
@@ -112,12 +122,26 @@ if __name__ == '__main__':
     train_df = get_df('train')
     val_df = get_df('val')
 
-    train_loader, valid_loader = data_loader.get_loaders(batch_size, args, train_df=train_df, valid_df=val_df)
+    print(train_df.shape, val_df.shape)
+
+    train_transform = Compose([
+        albu_trans.CenterCrop(512),
+        ToTensor(),
+        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    val_transform = Compose([
+        albu_trans.RandomCrop(512),
+        ToTensor(),
+        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    train_loader, valid_loader = data_loader.get_loaders(batch_size, args, train_df=train_df, valid_df=val_df, train_transform=train_transform, val_transform=val_transform)
 
     num_classes = data_loader.num_classes
 
-    # model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet50)
-    model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet121)
+    # model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet34, dropout=True)
+    model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
     model = utils.cuda(model)
 
     if utils.cuda_is_available:
@@ -137,19 +161,23 @@ if __name__ == '__main__':
         train_loader=train_loader,
         valid_loader=valid_loader,
         validation=validation,
-        patience=10,
+        patience=1000,
     )
 
-    if getattr(model, 'finetune', None):
-        utils.train(
-            init_optimizer=lambda lr: SGD(model.net.fc.parameters(), lr=lr, momentum=0.9),
-            n_epochs=1,
-            **train_kwargs)
-
-        utils.train(
-            init_optimizer=lambda lr: SGD(model.parameters(), lr=lr, momentum=0.9),
-            **train_kwargs)
-    else:
-        utils.train(
-            init_optimizer=lambda lr: SGD(model.parameters(), lr=lr, momentum=0.9),
-            **train_kwargs)
+    utils.train(
+        init_optimizer=lambda lr: SGD(model.parameters(), lr=lr, momentum=0.9),
+        **train_kwargs)
+    #
+    # if getattr(model, 'finetune', None):
+    #     utils.train(
+    #         init_optimizer=lambda lr: SGD(model.net.fc.parameters(), lr=lr, momentum=0.9),
+    #         n_epochs=1,
+    #         **train_kwargs)
+    #
+    #     utils.train(
+    #         init_optimizer=lambda lr: SGD(model.parameters(), lr=lr, momentum=0.9),
+    #         **train_kwargs)
+    # else:
+    #     utils.train(
+    #         init_optimizer=lambda lr: SGD(model.parameters(), lr=lr, momentum=0.9),
+    #         **train_kwargs)

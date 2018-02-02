@@ -2,19 +2,12 @@ import numpy as np
 import torch.utils.data as data
 import torch
 import utils
-import transforms as albu_trans
-from torchvision.transforms import ToTensor, Normalize, Compose
 from functools import partial
 from PIL import Image
 from io import BytesIO
+import cv2
 
 num_classes = 10
-
-img_transform = Compose([
-    albu_trans.CenterCrop(512),
-    ToTensor(),
-    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
 
 
 def jpg_compress(x, quality=None):
@@ -35,6 +28,12 @@ def gamma_correction(x, gamma=None):
     return x * 255
 
 
+def rescale(img, scale=None):
+    result = cv2.resize(img, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    if result.shape[0] < 512:
+        return img
+
+
 def augment(x, safe=False):
     if safe:
         augs = (np.fliplr,
@@ -50,6 +49,10 @@ def augment(x, safe=False):
             np.flipud,
             partial(np.rot90, k=1),
             partial(np.rot90, k=3),
+            partial(rescale, scale=0.5),
+            partial(rescale, scale=0.8),
+            partial(rescale, scale=1.5),
+            partial(rescale, scale=2.0),
             None)
     f = np.random.choice(augs)
 
@@ -59,11 +62,12 @@ def augment(x, safe=False):
 
 
 class CSVDataset(data.Dataset):
-    def __init__(self, df, mode='train'):
+    def __init__(self, df, transform=None, mode='train'):
         self.df = df
         self.path = df['file_name'].values.astype(str)
         self.target = df['class_id'].values.astype(np.int64)
         self.is_manip = df['is_manip'].values.astype(int)
+        self.transform = transform
         self.mode = mode
 
     def __len__(self):
@@ -72,28 +76,35 @@ class CSVDataset(data.Dataset):
     def __getitem__(self, idx):
         X = utils.load_image(self.path[idx])
 
+        if X.shape[0] < 512 or X.shape[1] < 512:
+            print(self.path[idx])
+
         if self.mode == 'train':
+            # self.X = augment(X, safe=False)
             if self.is_manip[idx] == 1:
                 self.X = augment(X, safe=True)
             else:
                 self.X = augment(X, safe=False)
 
         y = self.target[idx]
-        return img_transform(X), y
+
+        return self.transform(X), y
 
 
 def get_loaders(batch_size,
                 args,
                 train_df=None,
-                valid_df=None):
-    train_dataset = CSVDataset(train_df)
+                valid_df=None,
+                train_transform=None,
+                val_transform=None):
+    train_dataset = CSVDataset(train_df, transform=train_transform)
     train_loader = data.DataLoader(train_dataset,
                                    batch_size=batch_size,
                                    shuffle=True,
                                    num_workers=args.workers,
                                    pin_memory=torch.cuda.is_available())
 
-    valid_dataset = CSVDataset(valid_df, mode='val')
+    valid_dataset = CSVDataset(valid_df, transform=val_transform)
     valid_loader = data.DataLoader(valid_dataset,
                                    batch_size=batch_size,
                                    shuffle=False,
