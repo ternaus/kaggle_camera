@@ -289,8 +289,15 @@ class RandomCrop:
     def __call__(self, img, mask=None):
         h, w, c = img.shape
 
-        start_height = np.random.randint(0, h - self.height)
-        start_width = np.random.randint(0, w - self.width)
+        if self.height == h:
+            start_height = 0
+        else:
+            start_height = np.random.randint(0, h - self.height)
+
+        if self.width == w:
+            start_width = 0
+        else:
+            start_width = np.random.randint(0, w - self.width)
 
         y1 = start_height
         y2 = y1 + self.height
