@@ -125,13 +125,13 @@ if __name__ == '__main__':
     print(train_df.shape, val_df.shape)
 
     train_transform = Compose([
-        albu_trans.CenterCrop(512),
+        albu_trans.RandomCrop(512),
         ToTensor(),
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
     val_transform = Compose([
-        albu_trans.RandomCrop(512),
+        albu_trans.CenterCrop(512),
         ToTensor(),
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
