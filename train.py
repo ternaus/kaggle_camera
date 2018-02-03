@@ -65,7 +65,7 @@ def get_df(mode=None):
         flickr_df = pd.read_csv(str(data_path / 'flickr_df.csv'))
         flickr_df['is_manip'] = 0
 
-        test_preds = pd.read_csv(str(data_path / 'Votings_stats.csv'))
+        test_preds = pd.read_csv(str(data_path / 'Voting_stats_v4_all_096.csv'))
 
         test_preds['file_name'] = test_preds['fname'].apply(
             lambda x: (data_path / 'test' / x.replace('tif', 'jpg')).absolute(), 1)
