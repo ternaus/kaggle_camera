@@ -79,7 +79,7 @@ def get_df(mode=None):
 
         df = df[df['target'].notnull()]
 
-        df['to_rotate'] = df['target'].isin(['HTC-1-M7', 'Samsung-Galaxy-Note3', 'iPhone-6'])
+        df['to_rotate'] = df['target'].isin(['HTC-1-M7', 'Samsung-Galaxy-Note3', 'iPhone-6']).astype(int)
 
         return df
 
@@ -91,6 +91,7 @@ def get_df(mode=None):
 
         df['is_manip'] = 0
         df = df[df['target'].notnull()]
+        df['to_rotate'] = 0
         return df
 
     return None

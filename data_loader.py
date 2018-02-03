@@ -101,7 +101,7 @@ class CSVDataset(data.Dataset):
 
             self.X = albu_trans.RandomCrop(1024)
 
-            self.X = augment(X, self.is_manip == 1, self.to_rotate == 1)
+            self.X = augment(X, self.is_manip[idx] == 1, self.to_rotate[idx] == 1)
 
         y = self.target[idx]
 
