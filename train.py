@@ -15,7 +15,6 @@ from pathlib import Path
 import transforms as albu_trans
 from torchvision.transforms import ToTensor, Normalize, Compose
 
-
 import pandas as pd
 
 data_path = Path('data')
@@ -68,7 +67,8 @@ def get_df(mode=None):
 
         test_preds = pd.read_csv(str(data_path / 'Votings_stats.csv'))
 
-        test_preds['file_name'] = test_preds['fname'].apply(lambda x: (data_path / 'test' / x.replace('tif', 'jpg')).absolute(), 1)
+        test_preds['file_name'] = test_preds['fname'].apply(
+            lambda x: (data_path / 'test' / x.replace('tif', 'jpg')).absolute(), 1)
         test_preds = test_preds.rename(columns={'best_model': 'target'})
         test_preds = test_preds[test_preds['votes'] >= 6]
         test_preds['is_manip'] = test_preds['fname'].astype(str).str.contains('manip').astype(int)
@@ -91,6 +91,19 @@ def get_df(mode=None):
         return df
 
     return None
+
+
+train_transform = Compose([
+    albu_trans.RandomCrop(512),
+    ToTensor(),
+    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+val_transform = Compose([
+    albu_trans.CenterCrop(512),
+    ToTensor(),
+    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
 
 
 def add_args(parser):
@@ -124,19 +137,8 @@ if __name__ == '__main__':
 
     print(train_df.shape, val_df.shape)
 
-    train_transform = Compose([
-        albu_trans.RandomCrop(512),
-        ToTensor(),
-        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-
-    val_transform = Compose([
-        albu_trans.CenterCrop(512),
-        ToTensor(),
-        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-
-    train_loader, valid_loader = data_loader.get_loaders(batch_size, args, train_df=train_df, valid_df=val_df, train_transform=train_transform, val_transform=val_transform)
+    train_loader, valid_loader = data_loader.get_loaders(batch_size, args, train_df=train_df, valid_df=val_df,
+                                                         train_transform=train_transform, val_transform=val_transform)
 
     num_classes = data_loader.num_classes
 

@@ -15,11 +15,11 @@ from scipy.stats.mstats import gmean
 import train
 import data_loader
 
-# img_transform = transforms.Compose([
-#     # transforms.RandomCrop(512),
-#     transforms.ToTensor(),
-#     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-# ])
+img_transform = transforms.Compose([
+    # transforms.RandomCrop(512),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
 
 
 class PredictionDataset:
@@ -40,7 +40,7 @@ class PredictionDataset:
         if self.to_flip:
             image = np.fliplr(image)
 
-        return data_loader.img_transform(image.copy()), path.stem
+        return img_transform(image.copy()), path.stem
 
 
 def predict(model, from_paths, batch_size: int, k_angle: int, to_flip: bool):
@@ -65,8 +65,9 @@ def predict(model, from_paths, batch_size: int, k_angle: int, to_flip: bool):
 def get_model():
     num_classes = data_loader.num_classes
 
-    # model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet121)
-    model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet34, dropout=True)
+    model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
+    # model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
+    # model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet34, dropout=True)
     model = utils.cuda(model)
 
     if utils.cuda_is_available:
@@ -84,7 +85,7 @@ def get_model():
 
 def add_args(parser):
     arg = parser.add_argument
-    arg('--root', default='data/models/resnet34_147', help='model path')
+    arg('--root', default='data/models/densenet201_209', help='model path')
     arg('--batch-size', type=int, default=20)
     arg('--workers', type=int, default=12)
 
@@ -100,12 +101,13 @@ if __name__ == '__main__':
 
     data_path = Path('data')
 
-    test_images = sorted(list((data_path / 'test').glob('*.tif')))
+    # test_images = sorted(list((data_path / 'test').glob('*.tif')))
+    test_images = sorted(list((data_path / 'test').glob('*')))
 
     result = []
 
     model = get_model()
-    for k_angle in [0, 1, 2, 3]:
+    for k_angle in [0, 1, 3]:
         for to_flip in [False]:
             preds = predict(model, test_images, args.batch_size, k_angle, to_flip)
 
@@ -126,4 +128,4 @@ if __name__ == '__main__':
     df['fname'] = [x.name for x in test_images]
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
-    df.to_csv(str(data_path / '18.csv'), index=False)
+    df.to_csv(str(data_path / 'ternaus_densenet201_209.csv'), index=False)
