@@ -78,6 +78,9 @@ def get_df(mode=None):
         df['class_id'] = df['target'].map(class_map)
 
         df = df[df['target'].notnull()]
+
+        df['to_rotate'] = df['target'].isin(['HTC-1-M7', 'Samsung-Galaxy-Note3', 'iPhone-6'])
+
         return df
 
     elif mode == 'val':

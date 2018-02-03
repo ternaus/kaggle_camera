@@ -126,6 +126,7 @@ if __name__ == '__main__':
 
     df = pd.DataFrame(pred_probs, columns=columns)
     df['fname'] = [x.name for x in test_images]
+    df['fname'] = df['fname'].str.replace('jpg', 'tif')
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
     df.to_csv(str(data_path / 'ternaus_densenet201_209.csv'), index=False)

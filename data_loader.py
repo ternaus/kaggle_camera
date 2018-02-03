@@ -35,14 +35,18 @@ def rescale(img, scale=None):
         return img
 
 
-def augment(x, safe=False):
-    if safe:
+def augment(x, safe=False, to_rotate=False):
+    if safe and to_rotate:
         augs = (np.fliplr,
                 np.flipud,
                 partial(np.rot90, k=1),
                 partial(np.rot90, k=3),
                 None)
-    else:
+    elif safe and not to_rotate:
+        augs = (np.fliplr,
+                np.flipud,
+                None)
+    elif not safe and to_rotate:
         augs = (
             jpg_compress,
             gamma_correction,
@@ -50,6 +54,18 @@ def augment(x, safe=False):
             np.flipud,
             partial(np.rot90, k=1),
             partial(np.rot90, k=3),
+            partial(rescale, scale=0.5),
+            partial(rescale, scale=0.8),
+            partial(rescale, scale=1.5),
+            partial(rescale, scale=2.0),
+            None)
+
+    else:
+        augs = (
+            jpg_compress,
+            gamma_correction,
+            np.fliplr,
+            np.flipud,
             partial(rescale, scale=0.5),
             partial(rescale, scale=0.8),
             partial(rescale, scale=1.5),
@@ -68,6 +84,7 @@ class CSVDataset(data.Dataset):
         self.path = df['file_name'].values.astype(str)
         self.target = df['class_id'].values.astype(np.int64)
         self.is_manip = df['is_manip'].values.astype(int)
+        self.to_rotate = df['to_rotate'].values.astype(int)
         self.transform = transform
         self.mode = mode
 
@@ -84,11 +101,7 @@ class CSVDataset(data.Dataset):
 
             self.X = albu_trans.RandomCrop(1024)
 
-            # self.X = augment(X, safe=False)
-            if self.is_manip[idx] == 1:
-                self.X = augment(X, safe=True)
-            else:
-                self.X = augment(X, safe=False)
+            self.X = augment(X, self.is_manip == 1, self.to_rotate == 1)
 
         y = self.target[idx]
 
