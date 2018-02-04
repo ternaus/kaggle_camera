@@ -62,7 +62,15 @@ def get_df(mode=None):
         main_df['target'] = main_df['file_name'].apply(lambda x: x.parent.name, 1)
         main_df['is_manip'] = 0
 
-        flickr_df = pd.read_csv(str(data_path / 'flickr_df.csv'))
+        flickr_path = data_path / 'new_flickr'
+
+        flickr_file_names = list(flickr_path.glob('**/*.*'))
+        flickr_file_names = [x.absolute() for x in flickr_file_names]
+
+        flickr_df = pd.DataFrame({'file_name': flickr_file_names})
+        flickr_df['fname'] = flickr_df['file_name'].apply(lambda x: x.name, 1)
+
+        flickr_df['target'] = flickr_df['file_name'].apply(lambda x: x.parent.name, 1)
         flickr_df['is_manip'] = 0
 
         test_preds = pd.read_csv(str(data_path / 'Voting_stats_v4_all_096.csv'))

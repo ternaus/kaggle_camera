@@ -23,10 +23,9 @@ img_transform = transforms.Compose([
 
 
 class PredictionDataset:
-    def __init__(self, paths, k_angle=None, to_flip=False):
+    def __init__(self, paths, transform):
         self.paths = paths
-        self.k_angle = k_angle
-        self.to_flip = to_flip
+        self.transform = transform
 
     def __len__(self):
         return len(self.paths)
@@ -35,17 +34,21 @@ class PredictionDataset:
         path = self.paths[idx]
         image = utils.load_image(path)
 
-        if self.k_angle > 0:
-            image = np.rot90(image, self.k_angle)
-        if self.to_flip:
+        if self.transform == 'k1':
+            image = np.rot90(image, 1)
+        elif self.transform == 'k3':
+            image = np.rot90(image, 3)
+        elif self.transform == 'fliplr':
             image = np.fliplr(image)
+        elif self.transform == 'flipud':
+            image = np.flipud(image)
 
         return img_transform(image.copy()), path.stem
 
 
-def predict(model, from_paths, batch_size: int, k_angle: int, to_flip: bool):
+def predict(model, from_paths, batch_size: int, transform):
     loader = DataLoader(
-        dataset=PredictionDataset(from_paths, k_angle, to_flip),
+        dataset=PredictionDataset(from_paths, transform),
         shuffle=False,
         batch_size=batch_size,
         num_workers=args.workers,
@@ -85,7 +88,7 @@ def get_model():
 
 def add_args(parser):
     arg = parser.add_argument
-    arg('--root', default='data/models/densenet201_209', help='model path')
+    arg('--root', default='data/models/densenet201_341', help='model path')
     arg('--batch-size', type=int, default=20)
     arg('--workers', type=int, default=12)
 
@@ -107,11 +110,11 @@ if __name__ == '__main__':
     result = []
 
     model = get_model()
-    for k_angle in [0, 1, 3]:
-        for to_flip in [False]:
-            preds = predict(model, test_images, args.batch_size, k_angle, to_flip)
 
-            result += [preds]
+    for transform in [None, 'k1', 'k3', 'fliplr', 'flipud']:
+        preds = predict(model, test_images, args.batch_size, transform)
+
+        result += [preds]
 
     pred_probs = gmean(np.dstack(result), axis=2)
 
@@ -129,4 +132,4 @@ if __name__ == '__main__':
     df['fname'] = df['fname'].str.replace('jpg', 'tif')
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
-    df.to_csv(str(data_path / 'ternaus_densenet201_209.csv'), index=False)
+    df.to_csv(str(data_path / '22.csv'), index=False)
