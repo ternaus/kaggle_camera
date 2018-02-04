@@ -14,6 +14,7 @@ from torch.optim import SGD
 from pathlib import Path
 import transforms as albu_trans
 from torchvision.transforms import ToTensor, Normalize, Compose
+import densenet_mode
 
 import pandas as pd
 
@@ -29,6 +30,8 @@ class_map = {'HTC-1-M7': 0,
              'Sony-NEX-7': 7,
              'iPhone-4s': 8,
              'iPhone-6': 9}
+
+target_size = 256
 
 
 def validation(model, criterion, valid_loader):
@@ -73,12 +76,12 @@ def get_df(mode=None):
         flickr_df['target'] = flickr_df['file_name'].apply(lambda x: x.parent.name, 1)
         flickr_df['is_manip'] = 0
 
-        test_preds = pd.read_csv(str(data_path / 'Voting_stats_v4_all_096.csv'))
+        test_preds = pd.read_csv(str(data_path / 'Voting_stats_v5.csv'))
 
         test_preds['file_name'] = test_preds['fname'].apply(
             lambda x: (data_path / 'test' / x.replace('tif', 'jpg')).absolute(), 1)
         test_preds = test_preds.rename(columns={'best_model': 'target'})
-        test_preds = test_preds[test_preds['votes'] >= 6]
+        test_preds = test_preds[test_preds['votes'] >= 4]
         test_preds['is_manip'] = test_preds['fname'].astype(str).str.contains('manip').astype(int)
 
         df = pd.concat([main_df, flickr_df, test_preds])
@@ -87,7 +90,8 @@ def get_df(mode=None):
 
         df = df[df['target'].notnull()]
 
-        df['to_rotate'] = df['target'].isin(['HTC-1-M7', 'Samsung-Galaxy-Note3', 'iPhone-6']).astype(int)
+        # df['to_rotate'] = df['target'].isin(['HTC-1-M7', 'Samsung-Galaxy-Note3', 'iPhone-6']).astype(int)
+        df['to_rotate'] = 1
 
         return df
 
@@ -106,13 +110,13 @@ def get_df(mode=None):
 
 
 train_transform = Compose([
-    albu_trans.RandomCrop(512),
+    albu_trans.RandomCrop(target_size),
     ToTensor(),
     Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 val_transform = Compose([
-    albu_trans.CenterCrop(512),
+    albu_trans.CenterCrop(target_size),
     ToTensor(),
     Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
@@ -155,7 +159,7 @@ if __name__ == '__main__':
     num_classes = data_loader.num_classes
 
     # model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet34, dropout=True)
-    model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
+    model = densenet_mode.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
     model = utils.cuda(model)
 
     if utils.cuda_is_available:

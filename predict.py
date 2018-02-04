@@ -77,8 +77,8 @@ def get_model():
         model = nn.DataParallel(model, device_ids=[0]).cuda()
 
     state = torch.load(
-        # str(Path(args.root) / 'best-model_{fold}.pt'.format(fold=fold)))
-        str(Path(args.root) / 'model.pt'))
+        str(Path(args.root) / 'best-model.pt'))
+        # str(Path(args.root) / 'model.pt'))
 
     model.load_state_dict(state['model'])
     model.eval()
@@ -88,7 +88,7 @@ def get_model():
 
 def add_args(parser):
     arg = parser.add_argument
-    arg('--root', default='data/models/densenet201_341', help='model path')
+    arg('--root', default='data/models/densenet201_389', help='model path')
     arg('--batch-size', type=int, default=20)
     arg('--workers', type=int, default=12)
 
@@ -132,4 +132,4 @@ if __name__ == '__main__':
     df['fname'] = df['fname'].str.replace('jpg', 'tif')
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
-    df.to_csv(str(data_path / '22.csv'), index=False)
+    df.to_csv(str(data_path / '24.csv'), index=False)

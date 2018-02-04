@@ -7,8 +7,11 @@ from PIL import Image
 from io import BytesIO
 import cv2
 import transforms as albu_trans
+import train
 
 num_classes = 10
+
+target_size = train.target_size
 
 
 def jpg_compress(x, quality=None):
@@ -30,52 +33,52 @@ def gamma_correction(x, gamma=None):
 
 
 def rescale(img, scale=None):
+    if scale is None:
+        scale = np.random.choice([0.5, 0.8, 1.5, 2.0])
+
     result = cv2.resize(img, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-    if result.shape[0] < 512:
+    if result.shape[0] < target_size:
         return img
 
 
-def augment(x, safe=False, to_rotate=False):
-    if safe and to_rotate:
+def rot90(img, k=None):
+    if k is None:
+        k = np.random.choice([1, 2, 3])
+    return np.rot90(img, k=k)
+
+
+def augment(x, safe=False):
+    if safe:
         augs = (np.fliplr,
                 np.flipud,
-                partial(np.rot90, k=1),
-                partial(np.rot90, k=3),
+                partial(rot90),
                 None)
-    elif safe and not to_rotate:
-        augs = (np.fliplr,
-                np.flipud,
-                None)
-    elif not safe and to_rotate:
-        augs = (
-            jpg_compress,
-            gamma_correction,
-            np.fliplr,
-            np.flipud,
-            partial(np.rot90, k=1),
-            partial(np.rot90, k=3),
-            partial(rescale, scale=0.5),
-            partial(rescale, scale=0.8),
-            partial(rescale, scale=1.5),
-            partial(rescale, scale=2.0),
-            None)
+
+        f = np.random.choice(augs)
+
+        if f is not None:
+            return f(x), 0
+        return x, 0
 
     else:
         augs = (
             jpg_compress,
             gamma_correction,
+            partial(rescale),
             np.fliplr,
             np.flipud,
-            partial(rescale, scale=0.5),
-            partial(rescale, scale=0.8),
-            partial(rescale, scale=1.5),
-            partial(rescale, scale=2.0),
+            partial(rot90),
             None)
-    f = np.random.choice(augs)
 
-    if f is not None:
-        return f(x)
-    return x
+        num_aug = len(augs)
+
+        aug_index = np.random.randint(0, num_aug)
+
+        f = augs[aug_index]
+
+        if f is not None:
+            return f(x), 0
+        return x, int(aug_index >= 3)
 
 
 class CSVDataset(data.Dataset):
@@ -84,7 +87,6 @@ class CSVDataset(data.Dataset):
         self.path = df['file_name'].values.astype(str)
         self.target = df['class_id'].values.astype(np.int64)
         self.is_manip = df['is_manip'].values.astype(int)
-        self.to_rotate = df['to_rotate'].values.astype(int)
         self.transform = transform
         self.mode = mode
 
@@ -94,18 +96,19 @@ class CSVDataset(data.Dataset):
     def __getitem__(self, idx):
         X = utils.load_image(self.path[idx])
 
-        if X.shape[0] < 512 or X.shape[1] < 512:
+        if X.shape[0] < target_size or X.shape[1] < target_size:
             print(self.path[idx])
 
         if self.mode == 'train':
+            self.X = albu_trans.RandomCrop(2 * target_size)
 
-            self.X = albu_trans.RandomCrop(1024)
-
-            self.X = augment(X, self.is_manip[idx] == 1, self.to_rotate[idx] == 1)
+            self.X, manipulated = augment(X, self.is_manip[idx] == 1)
+        else:
+            manipulated = 0
 
         y = self.target[idx]
 
-        return self.transform(X), y
+        return (self.transform(X), torch.from_numpy(np.array([manipulated])).float()), y
 
 
 def get_loaders(batch_size,
