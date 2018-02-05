@@ -108,6 +108,9 @@ class CSVDataset(data.Dataset):
 
         y = self.target[idx]
 
+        if self.is_manip[idx] == 1:
+            manipulated = 1
+
         return (self.transform(X), torch.from_numpy(np.array([manipulated])).float()), y
 
 
