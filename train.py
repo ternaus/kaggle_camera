@@ -54,7 +54,7 @@ def validation(model, criterion, valid_loader):
 
 def get_df(mode=None):
     if mode == 'train':
-        train_path = data_path / 'train'
+        train_path = data_path / 'train2'
         train_file_names = list(train_path.glob('**/*.*'))
         train_file_names = [x.absolute() for x in train_file_names]
         main_df = pd.DataFrame({'file_name': train_file_names})
@@ -65,7 +65,7 @@ def get_df(mode=None):
         main_df['target'] = main_df['file_name'].apply(lambda x: x.parent.name, 1)
         main_df['is_manip'] = 0
 
-        flickr_path = data_path / 'new_flickr'
+        flickr_path = data_path / 'new_flickr2'
 
         flickr_file_names = list(flickr_path.glob('**/*.*'))
         flickr_file_names = [x.absolute() for x in flickr_file_names]
