@@ -6,7 +6,7 @@ data_path = Path('data')
 
 flickr_path = data_path / 'new_flickr'
 
-new_flickr_path = data_path / 'new_flick2'
+new_flickr_path = data_path / 'new_flickr2'
 new_flickr_path.mkdir(exist_ok=True)
 
 from joblib import Parallel, delayed
@@ -19,8 +19,8 @@ def helper(file_name):
     h_step = int(h / 3)
     w_step = int(w / 3)
 
-    for h in range(0, h, h_step):
-        for w in range(0, w, w_step):
+    for h in range(0, h - h_step, h_step):
+        for w in range(0, w - w_step, w_step):
             im = img[h:h + h_step, w:w + w_step, :]
 
             cv2.imwrite(

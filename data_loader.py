@@ -78,7 +78,7 @@ def augment(x, safe=False):
 
         if f is not None:
             return f(x), 0
-        return x, int(aug_index >= 3)
+        return x, int(aug_index < 3)
 
 
 class CSVDataset(data.Dataset):
