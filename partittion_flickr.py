@@ -2,7 +2,7 @@ from pathlib import Path
 import cv2
 from tqdm import tqdm
 
-data_path = Path('../data')
+data_path = Path('data')
 
 flickr_path = data_path / 'new_flickr'
 
