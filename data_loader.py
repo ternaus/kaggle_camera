@@ -99,16 +99,18 @@ class CSVDataset(data.Dataset):
         if X.shape[0] < target_size or X.shape[1] < target_size:
             print(self.path[idx])
 
+        is_manipulated = self.is_manip[idx]
+
         if self.mode == 'train':
             self.X = albu_trans.RandomCrop(2 * target_size)
 
-            self.X, manipulated = augment(X, self.is_manip[idx] == 1)
+            self.X, manipulated = augment(X, is_manipulated == 1)
         else:
             manipulated = 0
 
         y = self.target[idx]
 
-        if self.is_manip[idx] == 1:
+        if is_manipulated == 1:
             manipulated = 1
 
         return (self.transform(X), torch.from_numpy(np.array([manipulated])).float()), y
