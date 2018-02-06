@@ -1,5 +1,5 @@
 """
-Experiments with pytorch
+Train for manipulate files only
 """
 
 import argparse
@@ -14,7 +14,6 @@ from torch.optim import SGD
 from pathlib import Path
 import transforms as albu_trans
 from torchvision.transforms import ToTensor, Normalize, Compose
-import densenet_mode
 
 import pandas as pd
 
@@ -41,7 +40,7 @@ def validation(model, criterion, valid_loader):
     for inputs, targets in valid_loader:
         inputs = utils.variable(inputs, volatile=True)
         targets = utils.variable(targets)
-        outputs = model(inputs[0], inputs[1])
+        outputs = model(inputs, inputs[1])
         loss = criterion(outputs, targets)
         losses.append(loss.data[0])
         accuracy_scores += list(targets.data.cpu().numpy() == np.argmax(outputs.data.cpu().numpy(), axis=1))
@@ -159,7 +158,7 @@ if __name__ == '__main__':
     num_classes = data_loader.num_classes
 
     # model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet34, dropout=True)
-    model = densenet_mode.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
+    model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
     model = utils.cuda(model)
 
     if utils.cuda_is_available:

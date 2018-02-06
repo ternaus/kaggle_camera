@@ -40,45 +40,28 @@ def rescale(img, scale=None):
     if result.shape[0] < target_size:
         return img
 
+    return result
+#
+#
+# def rot90(img, k=None):
+#     if k is None:
+#         k = np.random.choice([1, 2, 3])
+#     return np.rot90(img, k=k)
 
-def rot90(img, k=None):
-    if k is None:
-        k = np.random.choice([1, 2, 3])
-    return np.rot90(img, k=k)
 
+def augment(x):
+    augs = (
+        partial(jpg_compress),
+        partial(gamma_correction),
+        partial(rescale))
 
-def augment(x, safe=False):
-    if safe:
-        augs = (np.fliplr,
-                np.flipud,
-                partial(rot90),
-                None)
+    num_aug = len(augs)
 
-        f = np.random.choice(augs)
+    aug_index = np.random.randint(0, num_aug)
 
-        if f is not None:
-            return f(x), 0
-        return x, 0
+    f = augs[aug_index]
 
-    else:
-        augs = (
-            jpg_compress,
-            gamma_correction,
-            partial(rescale),
-            np.fliplr,
-            np.flipud,
-            partial(rot90),
-            None)
-
-        num_aug = len(augs)
-
-        aug_index = np.random.randint(0, num_aug)
-
-        f = augs[aug_index]
-
-        if f is not None:
-            return f(x), 0
-        return x, int(aug_index < 3)
+    return f(x)
 
 
 class CSVDataset(data.Dataset):
@@ -86,8 +69,8 @@ class CSVDataset(data.Dataset):
         self.df = df
         self.path = df['file_name'].values.astype(str)
         self.target = df['class_id'].values.astype(np.int64)
-        self.is_manip = df['is_manip'].values.astype(int)
         self.transform = transform
+        self.is_manip = df['is_manip'].values
         self.mode = mode
 
     def __len__(self):
@@ -99,21 +82,29 @@ class CSVDataset(data.Dataset):
         if X.shape[0] < target_size or X.shape[1] < target_size:
             print(self.path[idx])
 
-        is_manipulated = self.is_manip[idx]
-
         if self.mode == 'train':
-            self.X = albu_trans.RandomCrop(2 * target_size)
+            c = albu_trans.RandomCrop(2 * target_size)
+            X = c(X)
 
-            self.X, manipulated = augment(X, is_manipulated == 1)
-        else:
-            manipulated = 0
+        if self.is_manip[idx] == 0:
+            X = augment(X)
+
+        X = D4(X)
 
         y = self.target[idx]
 
-        if is_manipulated == 1:
-            manipulated = 1
+        return self.transform(X), y
 
-        return (self.transform(X), torch.from_numpy(np.array([manipulated])).float()), y
+
+def D4(img):
+    if np.random.random() < 0.5:
+        img = np.fliplr(img)
+
+    if np.random.random() < 0.5:
+        k = np.random.randint(0, 4)
+        img = np.rot90(img, k)
+
+    return img.copy()
 
 
 def get_loaders(batch_size,

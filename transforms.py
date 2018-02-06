@@ -292,7 +292,10 @@ class RandomCrop:
         if self.height == h:
             start_height = 0
         else:
-            start_height = np.random.randint(0, h - self.height)
+            try:
+                start_height = np.random.randint(0, h - self.height)
+            except:
+                x = 1
 
         if self.width == w:
             start_width = 0

@@ -122,12 +122,12 @@ def train(args,
             for i, (inputs, targets) in enumerate(tl):
                 inputs, targets = variable(inputs), variable(targets)
 
-                outputs = model(inputs[0], inputs[1])
+                outputs = model(inputs)
 
                 loss = criterion(outputs, targets)
 
                 optimizer.zero_grad()
-                batch_size = inputs[0].size(0)
+                batch_size = inputs.size(0)
                 (batch_size * loss).backward()
                 optimizer.step()
                 step += 1
