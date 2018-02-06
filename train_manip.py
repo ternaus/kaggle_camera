@@ -40,7 +40,7 @@ def validation(model, criterion, valid_loader):
     for inputs, targets in valid_loader:
         inputs = utils.variable(inputs, volatile=True)
         targets = utils.variable(targets)
-        outputs = model(inputs, inputs[1])
+        outputs = model(inputs)
         loss = criterion(outputs, targets)
         losses.append(loss.data[0])
         accuracy_scores += list(targets.data.cpu().numpy() == np.argmax(outputs.data.cpu().numpy(), axis=1))
