@@ -83,15 +83,15 @@ def get_df(mode=None):
         test_preds = test_preds[test_preds['votes'] >= 4]
         test_preds['is_manip'] = test_preds['fname'].astype(str).str.contains('manip').astype(int)
 
+        test_preds = test_preds[test_preds['is_manip'] == 0]
+
         df = pd.concat([main_df, flickr_df, test_preds])
 
         df['class_id'] = df['target'].map(class_map)
 
         # df = df[df['target'].notnull()]
 
-        # df['to_rotate'] = df['target'].isin(['HTC-1-M7', 'Samsung-Galaxy-Note3', 'iPhone-6']).astype(int)
-        # df['to_rotate'] = 1
-
+        df['is_manip'] = 1
         return df
 
     elif mode == 'val':
@@ -102,7 +102,7 @@ def get_df(mode=None):
 
         df['is_manip'] = 0
         df = df[df['target'].notnull()]
-        df['to_rotate'] = 0
+        df['is_manip'] = 1
         return df
 
     return None
