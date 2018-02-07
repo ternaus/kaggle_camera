@@ -14,6 +14,7 @@ from torch.optim import SGD
 from pathlib import Path
 import transforms as albu_trans
 from torchvision.transforms import ToTensor, Normalize, Compose
+from PIL import Image
 
 import pandas as pd
 
@@ -51,11 +52,21 @@ def validation(model, criterion, valid_loader):
     return {'valid_loss': valid_loss, 'accuracy': valid_accuracy}
 
 
+def is_image(file_path):
+    img = Image.open(str(file_path))
+    try:
+        img.size
+    except:
+        return False
+    return True
+
+
 def get_df(mode=None):
     if mode == 'train':
         train_path = data_path / 'train'
         train_file_names = list(train_path.glob('**/*.*'))
-        train_file_names = [x.absolute() for x in train_file_names]
+
+        train_file_names = [x.absolute() for x in train_file_names if is_image(x)]
         main_df = pd.DataFrame({'file_name': train_file_names})
         main_df['fname'] = main_df['file_name'].apply(lambda x: x.name, 1)
 
@@ -75,7 +86,7 @@ def get_df(mode=None):
         flickr_df['target'] = flickr_df['file_name'].apply(lambda x: x.parent.name, 1)
         flickr_df['is_manip'] = 0
 
-        test_preds = pd.read_csv(str(data_path / 'Voting_stats_v5.csv'))
+        test_preds = pd.read_csv(str(data_path / 'Voting_stats_v6.csv'))
 
         test_preds['file_name'] = test_preds['fname'].apply(
             lambda x: (data_path / 'test' / x.replace('tif', 'jpg')).absolute(), 1)
