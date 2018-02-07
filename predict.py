@@ -14,7 +14,7 @@ import pandas as pd
 from scipy.stats.mstats import gmean
 import train
 import data_loader
-import densenet_mode
+
 import transforms as albu_trans
 
 
@@ -39,6 +39,8 @@ class PredictionDataset:
 
         if self.transform == 'k1':
             image = np.rot90(image, 1)
+        elif self.transform == 'k2':
+            image = np.rot90(image, 1)
         elif self.transform == 'k3':
             image = np.rot90(image, 3)
         elif self.transform == 'fliplr':
@@ -46,11 +48,7 @@ class PredictionDataset:
         elif self.transform == 'flipud':
             image = np.flipud(image)
 
-        manipulated = int('manip' in str(path))
-
-        return (img_transform(image.copy()), torch.from_numpy(np.array([manipulated])).float()), path.stem
-
-        # return img_transform(image.copy()), path.stem
+        return img_transform(image.copy()), path.stem
 
 
 def predict(model, from_paths, batch_size: int, transform):
@@ -66,7 +64,7 @@ def predict(model, from_paths, batch_size: int, transform):
 
     for batch_num, (inputs, stems) in enumerate(tqdm(loader, desc='Predict')):
         inputs = utils.variable(inputs, volatile=True)
-        outputs = F.softmax(model(inputs[0], inputs[1]), dim=1)
+        outputs = F.softmax(model(inputs), dim=1)
         result += [outputs.data.cpu().numpy()]
 
     return np.vstack(result)
@@ -75,7 +73,7 @@ def predict(model, from_paths, batch_size: int, transform):
 def get_model():
     num_classes = data_loader.num_classes
 
-    model = densenet_mode.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
+    model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
     # model = models.DenseNetFinetune(num_classes, net_cls=models.M.densenet201, two_layer=True)
     # model = models.ResNetFinetune(num_classes, net_cls=models.M.resnet34, dropout=True)
     model = utils.cuda(model)
@@ -95,7 +93,7 @@ def get_model():
 
 def add_args(parser):
     arg = parser.add_argument
-    arg('--root', default='data/models/densenet201a_155', help='model path')
+    arg('--root', default='data/models/densenet201m_124', help='model path')
     arg('--batch-size', type=int, default=20)
     arg('--workers', type=int, default=12)
 
@@ -118,7 +116,7 @@ if __name__ == '__main__':
 
     model = get_model()
 
-    for transform in [None, 'k1', 'k3', 'fliplr', 'flipud']:
+    for transform in [None, 'k1', 'k2', 'k3', 'fliplr', 'flipud']:
         preds = predict(model, test_images, args.batch_size, transform)
 
         result += [preds]
@@ -139,4 +137,4 @@ if __name__ == '__main__':
     df['fname'] = df['fname'].str.replace('jpg', 'tif')
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
-    df.to_csv(str(data_path / '25.csv'), index=False)
+    df.to_csv(str(data_path / '26m.csv'), index=False)
