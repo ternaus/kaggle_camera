@@ -14,7 +14,6 @@ from torch.optim import SGD
 from pathlib import Path
 import transforms as albu_trans
 from torchvision.transforms import ToTensor, Normalize, Compose
-from PIL import Image
 
 import pandas as pd
 
@@ -52,21 +51,12 @@ def validation(model, criterion, valid_loader):
     return {'valid_loss': valid_loss, 'accuracy': valid_accuracy}
 
 
-def is_image(file_path):
-    img = Image.open(str(file_path))
-    try:
-        img.size
-    except:
-        return False
-    return True
-
-
 def get_df(mode=None):
     if mode == 'train':
         train_path = data_path / 'train'
         train_file_names = list(train_path.glob('**/*.*'))
 
-        train_file_names = [x.absolute() for x in train_file_names if is_image(x)]
+        train_file_names = [x.absolute() for x in train_file_names]
         main_df = pd.DataFrame({'file_name': train_file_names})
         main_df['fname'] = main_df['file_name'].apply(lambda x: x.name, 1)
 
