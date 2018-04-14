@@ -19,7 +19,7 @@ import transforms as albu_trans
 
 
 img_transform = transforms.Compose([
-    albu_trans.CenterCrop(train.target_size),
+    # albu_trans.CenterCrop(train.target_size),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
@@ -37,16 +37,20 @@ class PredictionDataset:
         path = self.paths[idx]
         image = utils.load_image(path)
 
-        if self.transform == 'k1':
+        if self.transform == 1:
             image = np.rot90(image, 1)
-        elif self.transform == 'k2':
+        elif self.transform == 2:
             image = np.rot90(image, 1)
-        elif self.transform == 'k3':
+        elif self.transform == 3:
             image = np.rot90(image, 3)
-        elif self.transform == 'fliplr':
+        elif self.transform == 4:
             image = np.fliplr(image)
-        elif self.transform == 'flipud':
-            image = np.flipud(image)
+        elif self.transform == 5:
+            image = np.rot90(np.fliplr(image), 1)
+        elif self.transform == 6:
+            image = np.rot90(np.fliplr(image), 2)
+        elif self.transform == 7:
+            image = np.rot90(np.fliplr(image), 3)
 
         return img_transform(image.copy()), path.stem
 
@@ -93,7 +97,7 @@ def get_model():
 
 def add_args(parser):
     arg = parser.add_argument
-    arg('--root', default='data/models/densenet201m_124', help='model path')
+    arg('--root', default='data/models/densenet201m_460', help='model path')
     arg('--batch-size', type=int, default=20)
     arg('--workers', type=int, default=12)
 
@@ -116,25 +120,54 @@ if __name__ == '__main__':
 
     model = get_model()
 
-    for transform in [None, 'k1', 'k2', 'k3', 'fliplr', 'flipud']:
+    for transform in range(10):
         preds = predict(model, test_images, args.batch_size, transform)
 
         result += [preds]
 
     pred_probs = gmean(np.dstack(result), axis=2)
 
-    # max_ind = np.argmax(pred_probs, axis=1)
+    row_sums = pred_probs.sum(axis=1)
+
+    pred_probs = pred_probs / row_sums[:, np.newaxis]
+
+    max_ind = np.argmax(pred_probs, axis=1)
 
     class_name, class_id = zip(*train.class_map.items())
 
     class_map_inv = dict(zip(class_id, class_name))
 
-    # preds = [class_map_inv[x] for x in max_ind]
+    preds = [class_map_inv[x] for x in max_ind]
     columns = [class_map_inv[x] for x in range(10)]
 
     df = pd.DataFrame(pred_probs, columns=columns)
+    df['camera'] = preds
     df['fname'] = [x.name for x in test_images]
     df['fname'] = df['fname'].str.replace('jpg', 'tif')
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
-    df.to_csv(str(data_path / '26m.csv'), index=False)
+    df[['fname', 'camera']].to_csv(str(data_path / 'ternaus_x.csv'), index=False)
+
+    # df = df.sort_values(by='fname').reset_index(drop=True)
+    #
+    # vote7 = pd.read_csv('data/Voting_stats_v7.csv').reset_index(drop=True)
+    #
+    # submit988 = pd.read_csv('data/submit.csv').sort_values(by='fname').reset_index(drop=True)
+
+    # print('total_mean vote 7 = ', np.mean(df['best_camera'].values == vote7['best_camera'].values))
+
+    # ind = df['fname'].str.contains('manip')
+    #
+    # print('manip_mean vote 7 = ', np.mean(df.loc[ind, 'best_camera'].values == vote7.loc[ind, 'best_camera'].values))
+    #
+    # print('unmanip_mean vote 7 = ', np.mean(df.loc[~ind, 'best_camera'].values == vote7.loc[~ind, 'best_camera'].values))
+    #
+    # print('988 total = ', np.mean(df['best_camera'].values == submit988['camera'].values))
+    #
+    # ind = df['fname'].str.contains('manip')
+    #
+    # print('988 manip = ', np.mean(df.loc[ind, 'best_camera'].values == submit988.loc[ind, 'camera'].values))
+    #
+    # print('988 unmanip = ',
+    #       np.mean(df.loc[~ind, 'best_camera'].values == submit988.loc[~ind, 'camera'].values))
+    #
