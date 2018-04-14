@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
     model = get_model()
 
-    for transform in range(10):
+    for transform in range(8):
         preds = predict(model, test_images, args.batch_size, transform)
 
         result += [preds]
