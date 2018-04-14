@@ -97,7 +97,8 @@ def get_model():
 
 def add_args(parser):
     arg = parser.add_argument
-    arg('--root', default='data/models/densenet201m_460', help='model path')
+    # arg('--root', default='data/models/densenet201m_460', help='model path')
+    arg('--root', default='data/models', help='model path')
     arg('--batch-size', type=int, default=20)
     arg('--workers', type=int, default=12)
 
@@ -146,7 +147,7 @@ if __name__ == '__main__':
     df['fname'] = df['fname'].str.replace('jpg', 'tif')
 
     # df = pd.DataFrame({'fname': [x.name for x in test_images], 'camera': preds})
-    df[['fname', 'camera']].to_csv(str(data_path / 'ternaus_x.csv'), index=False)
+    df[['fname', 'camera']].to_csv(str(data_path / 'ternaus_x1.csv'), index=False)
 
     # df = df.sort_values(by='fname').reset_index(drop=True)
     #

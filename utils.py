@@ -30,9 +30,9 @@ def cuda(x):
 
 
 def load_image(path: Path) -> np.array:
-
+    img = cv2.imread(str(path))
     # try:
-    img = jpeg4py.JPEG(str(path)).decode()
+    # img = jpeg4py.JPEG(str(path)).decode()
     # except:
     # img = cv2.imread(str(path))
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
